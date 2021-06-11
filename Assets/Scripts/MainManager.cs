@@ -1,8 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
 
 public class MainManager : MonoBehaviour
 {
@@ -11,14 +15,87 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
+    [SerializeField] Text nameText;
+    [SerializeField] Text recoardText;
     public GameObject GameOverText;
     
     private bool m_Started = false;
     private int m_Points;
+    private int recoardNumber;
     
     private bool m_GameOver = false;
 
-    
+
+    private void SaveRecoard(int point)
+    {
+        DataRecoard dr = new DataRecoard();
+        dr.recoard = point;
+        string json = JsonUtility.ToJson(dr);
+        File.WriteAllText(Application.persistentDataPath + "/DataRecoard.json", json);
+    }
+
+
+    int LoadReacord()
+    {
+        int recoard;
+        string path = Application.persistentDataPath + "/DataRecoard.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            DataRecoard dr = JsonUtility.FromJson<DataRecoard>(json);
+            recoard = dr.recoard;
+        }
+        else
+        {
+            recoard = 0;
+        }
+        return recoard;
+    }
+
+    public void GetName()
+    {
+        SaveName(nameText.text);
+        SetRecoardText();
+    }
+
+    void SaveName(string name)
+    {
+        DataName dn = new DataName();
+        dn.name = name;
+        string json = JsonUtility.ToJson(dn);
+        File.WriteAllText(Application.persistentDataPath + "/DataName.json", json);
+    }
+
+
+    string LoadName()
+    {
+        string name;
+        string path = Application.persistentDataPath + "/DataName.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            DataName dn = JsonUtility.FromJson<DataName>(json);
+            name = dn.name;
+        }
+        else
+        {
+            name = "Person";
+        }
+        return name;
+    }
+
+
+    private void Awake()
+    {
+        recoardNumber = LoadReacord();
+        SetRecoardText();
+    }
+
+    void SetRecoardText()
+    {
+        recoardText.text = "Best Point : " + LoadName() + " : "+ recoardNumber;
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -66,11 +143,43 @@ public class MainManager : MonoBehaviour
     {
         m_Points += point;
         ScoreText.text = $"Score : {m_Points}";
+        CheckRecoard(m_Points);
+    }
+
+    void CheckRecoard(int point)
+    {
+        if(point > recoardNumber)
+        {
+            recoardNumber = point;
+        }
     }
 
     public void GameOver()
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+    }
+
+    public void Exit()
+    {
+        SaveRecoard(recoardNumber);
+#if UNITY_EDITOR
+        EditorApplication.ExitPlaymode();
+#else
+        Application.Quit();
+#endif
+    }
+    
+
+    [System.Serializable]
+    class DataName
+    {
+        public string name;
+    }
+
+    [System.Serializable]
+    class DataRecoard
+    {
+        public int recoard;
     }
 }
